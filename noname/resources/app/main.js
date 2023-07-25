@@ -36,8 +36,10 @@ function createWindow() {
 	// 打开无名杀即开启全屏
 	win = new BrowserWindow({
 		fullscreen:true,
+		autoHideMenuBar:true, // 设置自动隐藏菜单栏
 		webPreferences: {
-			nodeIntegration: true
+			nodeIntegration: true,
+			contextIsolation: false,
 		}
 	});
 	
@@ -59,8 +61,8 @@ function createWindow() {
 		}
 	});
 	
-	// 关于背景音消失问题修复（from cocominimum）
-	app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+	// 关于背景音消失问题修复（from cocominimum），旧版才需要修复，例如v4.2.12
+	// app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 	
 	win.loadURL(`file://${__dirname}/app.html`);
 	win.on('closed', () => {
