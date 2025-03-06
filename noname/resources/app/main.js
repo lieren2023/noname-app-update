@@ -2,7 +2,27 @@ const {app, BrowserWindow, globalShortcut} = require('electron');
 const fs = require('fs');
 const path = require('path');
 
-let win;
+let windows = []; // 存储所有窗口数组
+// 注册全局快捷键
+function registerShortcuts(win) {
+	// 按下Esc键退出全屏
+	globalShortcut.register('ESC', () => {
+		if (!win.isDestroyed() && win.isFullScreen()) {
+			win.setFullScreen(false);
+		}
+	}, win);
+	// 按下F11键进入全屏
+	globalShortcut.register('F11', () => {
+		if (!win.isDestroyed() && !win.isFullScreen()) {
+			win.setFullScreen(true);
+		}
+	}, win);
+}
+// 注销全局快捷键
+function unregisterShortcuts(win) {
+	globalShortcut.unregister('ESC', win);
+	globalShortcut.unregister('F11', win);
+}
 
 // 更改数据文件存放路径（from 诗笺）
 function createDir(dirPath) {
@@ -34,7 +54,7 @@ if (!gotTheLock) {
 
 function createWindow() {
 	// 打开无名杀即开启全屏
-	win = new BrowserWindow({
+	const win = new BrowserWindow({
 		fullscreen:true,
 		autoHideMenuBar:true, // 设置自动隐藏菜单栏
 		webPreferences: {
@@ -43,30 +63,27 @@ function createWindow() {
 		}
 	});
 	
-	// 按下Esc键退出全屏
-	globalShortcut.register('ESC', () => {
-		if(win.isDestroyed()) {
-			globalShortcut.unregister('ESC');
-		} else {
-			win.setFullScreen(false);
-		}
+	// 当窗口失去焦点时注销快捷键
+	win.on('blur', () => {
+		unregisterShortcuts(win);
+	});
+	// 当窗口获得焦点时再次注册快捷键
+	win.on('focus', () => {
+		registerShortcuts(win);
 	});
 	
-	// 按下F11键进入全屏
-	globalShortcut.register('F11', () => {
-		if(win.isDestroyed()) {
-			globalShortcut.unregister('F11');
-		} else {
-			win.setFullScreen(true);
-		}
-	});
+	windows.push(win); // 将窗口添加到数组
 	
 	// 关于背景音消失问题修复（from cocominimum），旧版才需要修复，例如v4.2.12
 	// app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 	
 	win.loadURL(`file://${__dirname}/app.html`);
 	win.on('closed', () => {
-		win = null;
+		const index = windows.indexOf(win);
+		if (index > -1) {
+			windows.splice(index, 1); // 移除已关闭的窗口
+		}
+		unregisterShortcuts(win);
 	});
 }
 
@@ -78,7 +95,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
-	if (win === null) {
+	if (windows.length === 0) {
 		createWindow();
 	}
 });
