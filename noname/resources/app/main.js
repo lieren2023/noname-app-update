@@ -60,6 +60,7 @@ function createWindow() {
 		webPreferences: {
 			nodeIntegration: true,
 			contextIsolation: false,
+			enableRemoteModule: true,
 		}
 	});
 	
@@ -88,10 +89,47 @@ function createWindow() {
 }
 
 app.on('ready', createWindow);
-app.on('window-all-closed', () => {
-	app.quit();
+
+// 应用退出后额外删除【C:\Users\用户名\AppData\Roaming\无名杀】文件夹，做到应用删除无残留
+// 要删除的目标路径
+let roamingDirPath;
+roamingDirPath = path.join(process.env.APPDATA, app.getName());
+// 定义递归删除目录的函数
+function deleteDirectory(dirPath) {
+	try {
+		if (fs.existsSync(dirPath)) {
+			// 遍历删除文件和子目录
+			fs.readdirSync(dirPath).forEach(file => {
+				const filePath = path.join(dirPath, file);
+				if (fs.lstatSync(filePath).isDirectory()) {
+					deleteDirectory(filePath); // 递归处理子目录
+				} else {
+					fs.unlinkSync(filePath); // 删除文件
+				}
+			});
+			// 最后删除空目录本身（如果路径合法）
+			if (!path.basename(dirPath).includes(':')) { 
+				fs.rmdirSync(dirPath);
+			}
+		}
+	} catch (error) {
+		console.error(`无法删除目录 ${dirPath}:`, error.message);
+	}
+}
+
+// 监听应用退出事件
+app.on('will-quit', () => {
+	// 在退出前尝试删除临时路径
+	deleteDirectory(roamingDirPath);
+
 	// 注销所有快捷键
 	globalShortcut.unregisterAll();
+});
+
+app.on('window-all-closed', () => {
+	if (process.platform !== 'darwin') {
+		app.quit();
+	}
 });
 
 app.on('activate', () => {
