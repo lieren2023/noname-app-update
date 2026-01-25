@@ -3,18 +3,46 @@ const fs = require('fs');
 const path = require('path');
 
 let windows = []; // 存储所有窗口数组
+let autoWinMaximize = true;
 // 注册全局快捷键
 function registerShortcuts(win) {
 	// 按下Esc键退出全屏
 	globalShortcut.register('ESC', () => {
-		if (!win.isDestroyed() && win.isFullScreen()) {
-			win.setFullScreen(false);
+		if (!win.isDestroyed()) {
+			// 临时修复Electron中使用alert和comfirm等弹窗后input无法获得焦点的bug
+			// 临时修复方案：非全屏下按下Esc键
+			if (!win.isFullScreen()) {
+				win.minimize();
+				win.restore();
+			}
+			
+			if (win.isFullScreen()) {
+				win.setFullScreen(false);
+				
+				// 首次退出全屏后自动最大化
+				if (autoWinMaximize) {
+					const [width, height] = win.getSize();
+					if (width === 800 && height === 600) {
+						win.maximize();
+						autoWinMaximize = false;
+					}
+				}
+			}
 		}
 	}, win);
 	// 按下F11键进入全屏
 	globalShortcut.register('F11', () => {
-		if (!win.isDestroyed() && !win.isFullScreen()) {
-			win.setFullScreen(true);
+		if (!win.isDestroyed()) {
+			// 临时修复Electron中使用alert和comfirm等弹窗后input无法获得焦点的bug
+			// 临时修复方案：全屏下按下F11键
+			if (win.isFullScreen()) {
+				win.minimize();
+				win.restore();
+			}
+			
+			if (!win.isFullScreen()) {
+				win.setFullScreen(true);
+			}
 		}
 	}, win);
 }
