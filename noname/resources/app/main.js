@@ -89,6 +89,17 @@ function createWindow() {
 			nodeIntegration: true,
 			contextIsolation: false,
 			enableRemoteModule: true,
+			devTools: true, // 允许使用开发者工具
+		}
+	});
+	
+	// 按下F12打开控制台；若控制台已开启，在窗口聚焦时，按下F12关闭控制台
+	// 功能同Ctrl + Shift + I 快捷键（或按下 Alt 键唤出菜单栏并通过菜单栏 View → Toggle Developer Tools 打开开发者工具进行调试）
+	// 无名杀打开控制台快捷键为Ctrl + J
+	win.webContents.on('before-input-event', (event, input) => {
+		if (input.key === 'F12') {
+			event.preventDefault();
+			win.webContents.toggleDevTools();
 		}
 	});
 	
